@@ -5,7 +5,7 @@
 # septembre 2025
 #-----------------------------------------------------------#
 
-setwd("D:/EPHE_enseignement/module terrain/module terrain 2025/EPHE-UE-terrain-2025")
+setwd("C:/Users/jeany/OneDrive/Documents/1-enseignements/ue-terrain")
 
 ## librairies ------------------------------------------------------------------
 
@@ -17,14 +17,14 @@ library(seewave)
 library(lubridate) # formater les dates
 library(beepr) # émettre un son à la fin d'une opération
 
-source("scripts/fonctions/Soundscape-analysis-with-R-master/AcouIndexAlpha.R") # https://github.com/agasc/Soundscape-analysis-with-R
+source("ephe-field-teaching/scripts/fonctions/Soundscape-analysis-with-R-master/AcouIndexAlpha.R") # https://github.com/agasc/Soundscape-analysis-with-R
 
 #-----------------------------------------#
 ##### chemin d'accès aux fichiers son #####
 #-----------------------------------------#
 
 season <- "ete"
-path.folder <- paste("data/saison",season,sep="-")
+path.folder <- paste("sm-recordings/saison",season,sep="-")
 content.folder <- dir(path = path.folder)
 path.acou <- content.folder[grep("SMA", content.folder)]
 
@@ -39,7 +39,7 @@ t1 <- Sys.time()
 
 # alternative : run un seul site
 
-k <-3
+k <- 3
 
 # liste des fichiers acoustiques d'un site 
 
@@ -106,7 +106,7 @@ for (j in 1:length(audio.wav)){
           NP = T
         )
       
-      cat(paste(wave.name,as.character(Sys.time()),"////", sep= " "),file=paste("outputs/outfile",k,".txt",sep=""),append=TRUE)
+      cat(paste(wave.name,as.character(Sys.time()),"////", sep= " "),file=paste("ephe-field-teaching/outputs/outfile",k,".txt",sep=""),append=TRUE)
       
       tp <- Result$Mono_left
       tp$FILE <- wave.name
@@ -138,7 +138,7 @@ colnames(ind.acou) <- c("BIOAC",
                         )
 
 # write
-nfichier <- paste("outputs/",path.acou[k],"-",season,".csv",sep="")
+nfichier <- paste("ephe-field-teaching/outputs/",path.acou[k],"-",season,".csv",sep="")
 write.csv2(ind.acou,file=nfichier,row.names=F)
 
 # } # k sites
