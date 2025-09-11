@@ -108,6 +108,11 @@ write.csv(xy.eff,"outputs/xy_effectif.csv")
 
 map1 <- mapview(x = xy.eff, xcol = "x", ycol = "y", zcol = "nb", crs = "EPSG:4326")
 
+## caractérisation de l'échantillon --------------------------------------------
+
+x1 <- aggregate(df.all$ACI, by = list(df.all$'code-point',df.all$saison), FUN = "length")
+tapply(x1$x,INDEX = x1$Group.2, FUN = "sum")
+
 ## différences entre les enregistreurs -----------------------------------------
 
 # sélectionner une saison (ou df.k= df.all pour toutes saisons ensemble)
@@ -346,6 +351,12 @@ pred1.2 <- plot(pred2, show_residuals = T)+
   labs(x = "Pollution sonore (NDSI)", y = "Paysage sonore (ACI)", title = "")
 pred1.1 + pred1.2
 ggsave(filename = "outputs/modele.png", width = 15, height = 7.5)
+
+pred1.1
+ggsave(filename = "outputs/modele_saison.png", width = 7, height = 7)
+pred1.2
+ggsave(filename = "outputs/modele_lieu.png", width = 7, height = 7)
+
 
 # même modèle, jour
 
