@@ -17,6 +17,7 @@ library(patchwork)
 library(lme4)
 library(lmerTest)
 library(ggeffects)
+library(mgcv)
 
 # dates et heures
 library(suncalc)
@@ -57,8 +58,25 @@ for (i in 1:nrow(meta)) {
 }
 
 df.all1 <- merge(df.acou, meta, by.x = c("SM.nom","saison"), by.y = c("SM-nom","saison"))
-df.all1$START <- as.POSIXct(df.all1$START, format = "%Y-%m-%d %H:%M:%S")
-df.all1$date.record <- as.Date(df.all1$START)
+
+## recalculer dates - heures (colonne START) -
+# résout une erreur silencieuse dans le script "calcul-indices-acoustiques",
+# les heures en 00:00 sont NA
+
+dt.start <- nchar(df.all1$FILE) - 18
+dt.file <-
+  substring(df.all1$FILE, first = dt.start, last = nchar(df.all1$FILE))
+yr <- substring(dt.file, first = 1, last = 4)
+mth <- substring(dt.file, first = 5, last = 6)
+dy <- substring(dt.file, first = 7, last = 8)
+
+hr <- substring(dt.file, first = 10, last = 11)
+mn <- substring(dt.file, first = 12, last = 13)
+sc <- substring(dt.file, first = 14, last = 15)
+start <- ymd_hms(paste(yr, mth, dy, hr, mn, sc, sep = "-"))
+
+df.all1$START <- start
+df.all1$date.record <- start <- ymd(paste(yr, mth, dy, sep = "-"))
 
 ## catégorisation jour - nuit --------------------------------------------------
 
@@ -91,7 +109,7 @@ df.k <- subset(df.all, saison == k)
 
 # histogrammes sur quelques indices (sans dimension temporelle)
 
-h1 <- ggplot(df.k)+
+h1 <- ggplot(df.all)+
   aes(x  = ACI)+
   geom_histogram()+
   facet_wrap(~lieu)
@@ -272,6 +290,12 @@ m.ndsi.pri <- mapview(xcol = "X", ycol = "Y", zcol = "NDSI.av", x = m1, crs = cr
 m.ndsi.et <- mapview(xcol = "X", ycol = "Y", zcol = "NDSI.av", x = m2, crs = crs(loc.sm))
 m.ndsi.au <- mapview(xcol = "X", ycol = "Y", zcol = "NDSI.av", x = m3, crs = crs(loc.sm))
 
+# séries temporelles (modèles additifs généralisés)
+df.all$lieu <- factor(df.all$lieu)
+df.all$saison <- factor(df.all$saison)
+ts.ndsi <- gamm(NDSI ~ s(as.numeric(START), by = saison), random = list(lieu = ~ 1) , data = df.all)
+plot(ts.ndsi$gam)
+
 # ACI ~ NDSI
 
 rl1 <- ggplot(df.all)+
@@ -291,7 +315,16 @@ rl2
 df.all$saison <- factor(df.all$saison)
 df.all$lieu <- factor(df.all$lieu)
 
-mod1 <- lm(ACI ~ NDSI + saison + lieu + (NDSI:saison) + (NDSI:lieu), data = df.all)
+df.all$saison <- factor(df.all$saison)
+
+mod1 <- lm(ACI ~ NDSI + lieu + saison 
+           + (NDSI : saison) + (NDSI : lieu), data = df.all)
+
+par(mfrow = c(2,2))
+plot(mod1)
+
+plot(fitted(mod1),residuals(mod1))
+
 summary(mod1)
 
 pred1 <- ggpredict(mod1, terms = c("NDSI","saison"))
@@ -301,5 +334,44 @@ pred2 <- ggpredict(mod1, terms = c("NDSI","lieu"))
 pred1.2 <- plot(pred2, show_residuals = T)
 
 pred1.1 + pred1.2
+ggsave(filename = "outputs/modele.png", width = 15, height = 7.5)
 
+# même modèle, jour
 
+df.day <- subset(df.all, is.day == "yes" )
+mod1.day <- lm(ACI ~ NDSI + lieu + saison 
+           + (NDSI : saison) + (NDSI : lieu), data = df.day)
+
+pred1.day <- ggpredict(mod1.day, terms = c("NDSI","saison"))
+pred1.day.1 <- plot(pred1.day, show_residuals = T)
+
+pred2.day <- ggpredict(mod1.day, terms = c("NDSI","lieu"))
+pred2.day.2 <- plot(pred2.day, show_residuals = T)
+
+pred1.day.1 + pred2.day.2
+ggsave(filename = "outputs/modele-jour.png", width = 15, height = 7.5)
+
+# même modèle, nuit
+
+df.night <- subset(df.all, is.day == "no" )
+mod1.night <- lm(ACI ~ NDSI + lieu + saison 
+               + (NDSI : saison) + (NDSI : lieu), data = df.night)
+
+pred1.night <- ggpredict(mod1.night, terms = c("NDSI","saison"))
+pred1.night.1 <- plot(pred1.night, show_residuals = T)
+
+pred2.night <- ggpredict(mod1.night, terms = c("NDSI","lieu"))
+pred2.night.2 <- plot(pred2.night, show_residuals = T)
+
+pred1.night.1 + pred2.night.2
+ggsave(filename = "outputs/modele-nuit.png", width = 15, height = 7.5)
+
+## ACP -------------------------------------------------------------------------
+
+library(ade4)
+
+df.pca <- df.all[, c("BIOAC","HT","HF","H","ACI","NDSI","ADI","NP")]
+
+pca <- dudi.pca(df.pca)
+
+s.corcircle(pca$co)
