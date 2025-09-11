@@ -100,6 +100,14 @@ for (i in 1:nrow(df.all)) {
   
 }
 
+## carte des effectifs ---------------------------------------------------------
+
+xy.eff <- aggregate(df.all$HT, by = list(df.all$X, df.all$Y), FUN = "length")
+colnames(xy.eff) <- c("x","y","nb")
+write.csv(xy.eff,"outputs/xy_effectif.csv")
+
+map1 <- mapview(x = xy.eff, xcol = "x", ycol = "y", zcol = "nb", crs = "EPSG:4326")
+
 ## différences entre les enregistreurs -----------------------------------------
 
 # sélectionner une saison (ou df.k= df.all pour toutes saisons ensemble)
@@ -328,11 +336,14 @@ plot(fitted(mod1),residuals(mod1))
 summary(mod1)
 
 pred1 <- ggpredict(mod1, terms = c("NDSI","saison"))
-pred1.1 <- plot(pred1, show_residuals = T)
+pred1.1 <- plot(pred1, show_residuals = T)+
+  scale_color_viridis_d()+
+  labs(x = "Pollution sonore (NDSI)", y = "Paysage sonore (ACI)", title = "")
 
 pred2 <- ggpredict(mod1, terms = c("NDSI","lieu"))
-pred1.2 <- plot(pred2, show_residuals = T)
-
+pred1.2 <- plot(pred2, show_residuals = T)+
+  scale_color_viridis_d()+
+  labs(x = "Pollution sonore (NDSI)", y = "Paysage sonore (ACI)", title = "")
 pred1.1 + pred1.2
 ggsave(filename = "outputs/modele.png", width = 15, height = 7.5)
 
@@ -375,3 +386,10 @@ df.pca <- df.all[, c("BIOAC","HT","HF","H","ACI","NDSI","ADI","NP")]
 pca <- dudi.pca(df.pca)
 
 s.corcircle(pca$co)
+
+
+
+d <- read.csv2("C:/Users/jeany/OneDrive/Documents/1-enseignements/ue-terrain/gis/vanille/csv/POLLEN standard.csv")
+d$ID <- paste("A",1:5,sep="_")
+
+d2 <- st_as_sf(d,coords = c("LONGITUDE.X","LATITUDE.Y"))
